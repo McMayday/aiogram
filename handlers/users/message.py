@@ -4,8 +4,10 @@ from data import config
 from loader import bot, dp, db
 from .db_commands import *
 from datetime import timedelta, datetime
+from utils.misc import rate_limit
 
 
+@rate_limit(limit=10)
 @dp.message_handler()
 async def echo(message):
     chat_id = message.from_user.id
@@ -16,7 +18,7 @@ async def echo(message):
     else:
         url = message.text
         if 'https://www.instagram.com/' in url:
-            insta_username = str(url).split('/')[-1]
+            insta_username = str(url).split('/')[-1].split('?')[0]
             username_exists = await database.get_insta_id(insta_username)
             if not username_exists:
                 id = await database.add_new_instagram(insta_username)

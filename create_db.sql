@@ -23,7 +23,12 @@ create table usernames
   alter table usernames
     owner to postgres;
 
-
+create table admins
+  (
+    id serial primary key,
+    username text,
+    chat_id text
+);
 
 create table users
   (

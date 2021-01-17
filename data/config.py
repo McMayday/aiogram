@@ -1,22 +1,16 @@
-from environs import Env
+import os
+from dotenv import load_dotenv
 
-# Теперь используем вместо библиотеки python-dotenv библиотеку environs
-env = Env()
-env.read_env()
+load_dotenv()
+
+
 # '914674179'
 ALLOWED_USERS = []
 ADMINS = [914674179, ]
-DATABASE = 'windr14'
-PGUSER ='postgres'
-PGPASSWORD = 1
-BOT_TOKEN = '1506550581:AAEJ36pTQZlyCPAqz4OkwsARdwOKug-XSYA'  # Забираем значение типа str
-IP = 'localhost'  # Тоже str, но для айпи адреса хоста
-
-aiogram_redis = {
-    'host': IP,
-}
-
-redis = {
-    'address': (IP, 6379),
-    'encoding': 'utf8'
-}
+PGDB = str(os.getenv("PGDB"))
+PGUSER =str(os.getenv("PGUSER"))
+PGPASSWORD = str(os.getenv("PGPASSWORD"))
+BOT_TOKEN = str(os.getenv("BOT_TOKEN"))
+ADMIN_KEY = str(os.getenv("ADMIN_KEY"))
+IP = 'localhost'
+KEY = str(os.getenv("KEY"))

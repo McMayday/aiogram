@@ -7,9 +7,9 @@ from data import config
 async def create_db():
     create_db_command = open("aiogram/create_db.sql", "r").read()
     connection = await asyncpg.connect(
-        database='tgbot',
-        user='user',
-        host='localhost',
+        database=config.PGDB,
+        user=config.PGUSER,
+        host=config.PGPASSWORD,
         )
     await connection.execute(create_db_command)
     await connection.close()
@@ -17,9 +17,9 @@ async def create_db():
 
 async def create_pool():
     return await asyncpg.create_pool(
-        database='tgbot',
-        user='user',
-        host='localhost',
+        database=config.PGDB,
+        user=config.PGUSER,
+        host=config.PGPASSWORD,
     )
 
 

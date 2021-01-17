@@ -8,11 +8,25 @@ from datetime import timedelta, datetime
 from aiogram.utils.callback_data import CallbackData
 from keyboards.inline.callback_datas import *
 from states.menu import Test
+from aiogram.dispatcher.filters import BoundFilter
 import os
+
+class IsAdmin(BoundFilter):
+
+
+    async def check(self, message):
+        chat_id = message.from_user.id
+        user_count = await database.get_admin(chat_id)
+        if user_count:
+            return True
+        else:
+            return False
 
 class DbCommands:
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     pool = db
+    ADD_ADMIN = "INSERT INTO admins(chat_id, username) VALUES($1,$2) RETURNING id"
+    GET_ADMIN = "SELECT id FROM admins WHERE chat_id=$1"
     ADD_NEW_USER = "INSERT INTO users(chat_id, username, full_name, in_blacklist, active) VALUES ($1, $2, $3, $4, $5) RETURNING id"
     GET_ID = "SELECT id FROM users WHERE chat_id=$1"
     CREATE_USERNAMES = "INSERT INTO usernames(username, chat_id, users_id) VALUES ($1, $2, $3) RETURNING id"
@@ -69,6 +83,10 @@ class DbCommands:
     async def count_instagram_in_blacklist(self):
         record = await self.pool.fetchval(self.COUNT_INSTAGRAM_IN_BLACKLIST)
         return record
+
+    async def get_admin(self, chat_id):
+        id = await self.pool.fetchval(self.GET_ADMIN, str(chat_id))
+        return id
 
     async def reset_blacklist(self, username=None):
         if not username:
@@ -195,6 +213,9 @@ class DbCommands:
         user_id = types.User.get_current().id
         return user_id
 
+    async def add_new_admin(self, user, chat_id):
+        id = await self.pool.fetch(self.ADD_ADMIN, str(chat_id), user)
+        return id
 
     async def check_accounts(self):
         users = await self.pool.fetch(self.GET_INSTAGRAM_USERS)
@@ -208,21 +229,31 @@ database = DbCommands()
 @dp.message_handler(commands=["start"])
 async def register_user(message):
     chat_id = message.from_user.id
+    user = message.from_user.username
     key = message.get_args()
-    if key != '79a603a1f14ab8fdcd36672c0e418fdb61410dadf05b1383acff6a1e5fb964ee':
-        text = f'Для того чтобы пользоваться ботом сначала активируйте его'
-        await bot.send_message(chat_id, text)
-    else:
-        id = await database.add_new_user(referral=key)
+    if key == config.ADMIN_KEY:
+        id = await database.add_new_admin(user, chat_id)
         if not id:
             text = 'Доброго времени суток'
             await bot.send_message(chat_id, text)
         else:
             text = 'Записал в базу'
             await bot.send_message(chat_id, text)
+    else:
+        if key != config.KEY:
+            text = f'Для того чтобы пользоваться ботом сначала активируйте его'
+            await bot.send_message(chat_id, text)
+        else:
+            id = await database.add_new_user(referral=key)
+            if not id:
+                text = 'Доброго времени суток'
+                await bot.send_message(chat_id, text)
+            else:
+                text = 'Записал в базу'
+                await bot.send_message(chat_id, text)
 
 
-@dp.message_handler(commands=["CountInstaNames"])
+@dp.message_handler(IsAdmin(), commands=["CountInstaNames"])
 async def register_user(message):
     chat_id = message.from_user.id
     permission = await check_permissions(chat_id)
@@ -233,7 +264,7 @@ async def register_user(message):
         await database.get_csv(chat_id)
         await bot.send_message(chat_id, f'На данный момент в базе {count} пользователей instagram') #FIX IT: прикрутить вывод базы из excel
 
-@dp.message_handler(commands=["CountInstaNotInBlackList"])
+@dp.message_handler(IsAdmin(), commands=["CountInstaNotInBlackList"])
 async def insta_no_blacklist_count(message):
     chat_id = message.from_user.id
     permission = await check_permissions(chat_id)
@@ -245,7 +276,7 @@ async def insta_no_blacklist_count(message):
         await bot.send_message(chat_id, f'Кол-во пользователей с отсутствующей семидневной блокировкой {count}')  #FIX IT: прикрутить вывод базы из excel
 
 
-@dp.message_handler(commands=["CountInstaInBlackList"])
+@dp.message_handler(IsAdmin(), commands=["CountInstaInBlackList"])
 async def insta_in_blacklist_count(message):
     await database.check_accounts()
     chat_id = message.from_user.id
@@ -257,7 +288,7 @@ async def insta_in_blacklist_count(message):
         await database.get_csv(chat_id)
         await bot.send_message(chat_id, f'Кол-во пользователей с семидневной блокировкой {count}')  #FIX IT: прикрутить вывод базы из excel
 
-@dp.message_handler(commands=["ResetInstaBlacklist"])
+@dp.message_handler(IsAdmin(), commands=["ResetInstaBlacklist"])
 async def reset_insta_blacklist_count(message, user=None):
     chat_id = message.from_user.id
     permission = await check_permissions(chat_id)
@@ -274,7 +305,7 @@ async def reset_insta_blacklist_count(message, user=None):
         else:
             await bot.send_message(chat_id, f'Пользователя {username} не существует')
 
-@dp.message_handler(commands=["InstaAddBlacklist"])
+@dp.message_handler(IsAdmin(), commands=["InstaAddBlacklist"])
 async def add_insta_in_blacklist_count(message, user=None):
     await database.check_accounts()
     chat_id = message.from_user.id
@@ -292,7 +323,7 @@ async def add_insta_in_blacklist_count(message, user=None):
         else:
             await bot.send_message(chat_id, f'Пользователя {username} не существует')
 
-@dp.message_handler(commands=["UserAddBlacklist"])
+@dp.message_handler(IsAdmin(), commands=["UserAddBlacklist"])
 async def user_add_blacklist_count(message, user=None):
     chat_id = message.from_user.id
     permission = await check_permissions(chat_id)
@@ -309,7 +340,7 @@ async def user_add_blacklist_count(message, user=None):
         else:
             await bot.send_message(chat_id, f'Пользователя {username} не существует')
 
-@dp.message_handler(commands=["UserRemoveFromBlacklist"])
+@dp.message_handler(IsAdmin(), commands=["UserRemoveFromBlacklist"])
 async def user_remove_blacklist_count(message, user=None):
     chat_id = message.from_user.id
     permission = await check_permissions(chat_id)
@@ -327,7 +358,7 @@ async def user_remove_blacklist_count(message, user=None):
             await bot.send_message(chat_id, f'Пользователя {username} не существует')
 
 
-@dp.message_handler(commands=["InstaUsersCalls"])
+@dp.message_handler(IsAdmin(), commands=["InstaUsersCalls"])
 async def insta_blacklist_counts(message, user=None):
     "какие пользователи обращались к instagram никнейму"
     chat_id = message.from_user.id
@@ -354,7 +385,7 @@ async def insta_blacklist_counts(message, user=None):
             await bot.send_message(chat_id, f'Пользователя {username} не существует')
 
 
-@dp.message_handler(commands=["InstaUsersCallsCount"])
+@dp.message_handler(IsAdmin(), commands=["InstaUsersCallsCount"])
 async def insta_count(message, user=None):
     "количество обращений к instagram никнейму"
     chat_id = message.from_user.id
@@ -372,7 +403,7 @@ async def insta_count(message, user=None):
         else:
             await bot.send_message(chat_id, f'Пользователя {username} не существует')
 
-@dp.message_handler(commands=["Items"])
+@dp.message_handler(IsAdmin(), commands=["Items"])
 async def show_items(message):
     "количество обращений к instagram никнейму"
     chat_id = message.from_user.id
@@ -384,6 +415,9 @@ async def show_items(message):
 
 
 async def check_permissions(chat_id):
+    user_count = await database.get_admin(chat_id)
+    if user_count:
+        return True
     try:
         is_active, in_blacklist = await database.get_user_credentials(chat_id)
         if is_active == True and in_blacklist == False:
