@@ -22,7 +22,7 @@ choice = InlineKeyboardMarkup(row_width=1,
                                     ),
 
                                 ],
-                    
+
                                 [
                                     InlineKeyboardButton(
                                         text="Внести никнейм в блеклист",
@@ -65,6 +65,12 @@ choice = InlineKeyboardMarkup(row_width=1,
                                     InlineKeyboardButton(
                                         text="Убрать юзернейм(telegram) из блеклиста",
                                         callback_data="user_remove_blacklist",
+                                    ),
+                                ],
+                                [
+                                    InlineKeyboardButton(
+                                        text="Заблокировать инстаграм(10лет)",
+                                        callback_data="block_forever",
                                     ),
                                 ]
 

@@ -17,9 +17,9 @@ async def create_db():
 
 async def create_pool():
     return await asyncpg.create_pool(
-        database=config.PGDB,
-        user=config.PGUSER,
-        host=config.PGPASSWORD,
+        database='tgbot',
+        user='user',
+        host='localhost',
     )
 
 

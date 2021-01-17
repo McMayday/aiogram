@@ -7,3 +7,4 @@ class Test(StatesGroup):
     Q4 = State()
     Q5 = State()
     Q6 = State()
+    Q7 = State()
